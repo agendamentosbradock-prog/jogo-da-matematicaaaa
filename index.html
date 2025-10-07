@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesouro Trigonométrico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&family=Bangers&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --wood-light: #a1662f; --wood-dark: #663d1a;
+            --paper-bg: #f5e8c8; --text-dark: #3d2a15;
+            --gold: #f1c40f; --sea-dark: #2c3e50;
+            --red-pirate: #c0392b; --green-pirate: #27ae60;
+        }
+
+        body { font-family: 'Roboto', sans-serif; margin: 0; overflow: hidden; }
+
+        .screen {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
+            opacity: 0; visibility: hidden; transition: opacity 0.5s ease-in-out;
+            padding: 20px; box-sizing: border-box;
+        }
+        .screen.active { opacity: 1; visibility: visible; }
+
+        /* --- TEMA PIRATA --- */
+        #pin-screen { background: linear-gradient(180deg, #e67e22, #d35400); }
+        #lobby-screen { background: linear-gradient(to bottom, var(--wood-dark), #3d2a15); }
+        #difficulty-screen { background: linear-gradient(to bottom, #2c3e50, #46637f); }
+        #game-screen { background: linear-gradient(to bottom, var(--sea-dark), #1c2833); }
+        #feedback-screen { transition: background-color 0.1s; }
+        .feedback-correct { background-color: var(--green-pirate); }
+        .feedback-incorrect { background-color: var(--red-pirate); }
+        #leaderboard-screen { background: linear-gradient(to bottom, #f39c12, #e67e22); }
+        #podium-screen { background: linear-gradient(to top, #f1c40f, #f39c12); }
+        #review-screen { background-color: var(--paper-bg); justify-content: flex-start; overflow-y: auto; }
+        
+        .title { font-family: 'Bangers', cursive; color: white; font-size: 3rem; text-shadow: 2px 2px 5px black; text-align: center; }
+        
+        /* --- Tela de PIN --- */
+        #pin-container { background: var(--paper-bg); color: var(--text-dark); padding: 40px; border-radius: 10px; text-align: center; border: 10px solid var(--wood-dark); animation: fadeIn 0.5s; }
+        #pin-title { font-family: 'Bangers', cursive; font-size: 4rem; margin: 0; color: var(--red-pirate); text-shadow: 2px 2px #000; }
+        #pin-input { width: 300px; padding: 15px; font-size: 2.5rem; text-align: center; border: 3px solid var(--wood-dark); border-radius: 8px; margin: 20px 0; font-family: 'Bangers', cursive; }
+        #pin-button { width: 342px; padding: 15px; font-size: 1.8rem; font-weight: 700; background-color: var(--green-pirate); color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 5px 0 #1e8449; transition: all 0.1s ease; }
+        
+        /* --- Dificuldade (Mapa do Tesouro) --- */
+        #difficulty-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px; }
+        .difficulty-card { background: var(--paper-bg); color: var(--text-dark); padding: 20px; border: 8px solid var(--wood-dark); border-radius: 10px; width: 200px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .difficulty-card:hover { transform: translateY(-10px); box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
+        .difficulty-card h3 { font-family: 'Bangers', cursive; font-size: 2rem; margin: 0 0 10px 0; }
+
+        /* --- Tela de Jogo --- */
+        #game-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #question-header { display: flex; justify-content: space-between; align-items: center; color: white; padding: 10px 20px; font-size: 1.5rem; font-weight: 900; text-shadow: 2px 2px 4px black; }
+        #question-text { color: white; text-align: center; font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 900; text-shadow: 3px 3px 8px black; flex-grow: 1; display: flex; justify-content: center; align-items: center; padding: 0 20px; }
+        #answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+        .answer-btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(145deg, var(--wood-light), var(--wood-dark)); box-shadow: 0 8px 0 var(--text-dark); transition: all 0.1s ease; color: white; display: flex; align-items: center; }
+        .answer-icon { font-size: 2.5rem; margin-right: 15px; }
+        .answer-text { font-size: 1.5rem; font-weight: 900; }
+
+        /* --- Rodada do Kraken --- */
+        #kraken-banner { position: absolute; top: 0; left: 0; width: 100%; background: linear-gradient(to right, var(--red-pirate), #e74c3c, var(--red-pirate)); color: white; padding: 10px; font-family: 'Bangers', cursive; font-size: 2rem; text-align: center; z-index: 100; display: none; animation: slideInDown 0.5s forwards; }
+
+        /* --- Diário de Bordo --- */
+        #review-list { list-style: none; padding: 0; width: 90%; max-width: 800px; margin-top: 80px; }
+        .review-item { background: rgba(0,0,0,0.05); margin-bottom: 15px; padding: 15px; border-radius: 8px; text-align: left; border: 2px solid var(--wood-light); color: var(--text-dark); }
+        .review-answer { padding: 5px; border-radius: 5px; font-weight: 700; }
+        .review-answer.player-wrong { background-color: #ffcdd2; }
+        .review-answer.correct-answer { background-color: #c8e6c9; }
+        
+        /* --- Estilos Genéricos (Colapsados) --- */
+        .overlay { background-color: rgba(0,0,0,0.6); border-radius: 20px; padding: 30px; }
+        .player-card { background: var(--paper-bg); color: var(--text-dark); padding: 15px; border-radius: 8px; border: 5px solid var(--wood-dark); font-weight: 900; font-size: 1.2rem; opacity: 0; animation: popIn 0.5s forwards; }
+        #player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        #nickname-setup input { padding: 10px; font-size: 1.5rem; text-align: center; border-radius: 5px; border: 3px solid var(--wood-dark); }
+        #nickname-setup button { padding: 10px 20px; font-size: 1.5rem; margin-left: 10px; background-color: var(--green-pirate); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #timer-container { width: 150px; height: 30px; background-color: #333; border-radius: 15px; overflow: hidden; border: 3px solid #000; position: relative; }
+        #timer-fuse { width: 100%; height: 100%; background: linear-gradient(to left, #f1c40f, #e74c3c); transition: transform 1s linear; transform-origin: left; }
+        #timer-spark { font-size: 20px; position: absolute; left: 100%; top: 50%; transform: translate(-50%, -50%); transition: left 1s linear; }
+        .answer-btn:active { transform: translateY(8px); box-shadow: 0 0 0 var(--text-dark); }
+        .answer-btn.disabled { filter: grayscale(70%); opacity: 0.7; }
+        .answer-btn.correct { animation: pulse 1s infinite; border: 4px solid var(--gold); }
+        .answer-btn.incorrect { opacity: 0.5; }
+        #feedback-container { text-align: center; color: white; animation: fadeIn 0.3s; }
+        #feedback-text { font-family: 'Bangers', cursive; font-size: 6rem; text-shadow: 4px 4px 10px rgba(0,0,0,0.5); }
+        #points-text { font-size: 2.5rem; font-weight: 900; }
+        #explanation-text { font-size: 1.5rem; font-weight: 700; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; max-width: 80%; text-align: center; margin-top: 20px; }
+        #leaderboard-list { list-style: none; padding: 0; width: 90%; max-width: 600px; }
+        .leaderboard-item { background-color: var(--paper-bg); padding: 15px 30px; margin-bottom: 15px; color: var(--text-dark); display: flex; justify-content: space-between; align-items: center; font-size: 1.8rem; font-weight: 900; border: 5px solid var(--wood-dark); border-radius: 5px; box-shadow: 5px 5px 10px rgba(0,0,0,0.4); opacity: 0; animation: popIn 0.5s forwards; }
+        .leaderboard-item strong { color: var(--red-pirate); }
+        #podium-container { display: flex; align-items: flex-end; gap: 10px; }
+        .podium-step { display: flex; flex-direction: column; align-items: center; color: var(--text-dark); text-align: center; }
+        .podium-name { font-family: 'Bangers', cursive; font-size: 2.5rem; text-shadow: 2px 2px #fff; }
+        .podium-score { font-size: 1.5rem; font-weight: 900; }
+        .podium-chest { font-size: 6rem; filter: drop-shadow(3px 3px 5px #000); }
+        #podium-2 { transform: translateY(-50px); } #podium-1 { transform: translateY(0px); } #podium-3 { transform: translateY(-100px); }
+        .action-button { background-color: var(--green-pirate); color: white; padding: 15px 30px; font-size: 1.5rem; border-radius: 8px; border: none; cursor: pointer; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes slideInDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <audio id="music-bg" src="https://cdn.pixabay.com/download/audio/2022/08/17/audio_b484591249.mp3" loop></audio>
+    <audio id="sound-click" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_24ae738a8e.mp3"></audio>
+    <audio id="sound-correct" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_365599e525.mp3"></audio>
+    <audio id="sound-wrong" src="https://cdn.pixabay.com/download/audio/2022/03/14/audio_14f339f1b3.mp3"></audio>
+    <audio id="sound-kraken" src="https://cdn.pixabay.com/download/audio/2022/03/25/audio_38d633b478.mp3"></audio>
+
+    <div id="pin-screen" class="screen active">
+        <div id="pin-container">
+            <h1 id="pin-title">Tesouro Trigonométrico</h1>
+            <input type="text" id="pin-input" placeholder="PIN do Navio">
+            <button id="pin-button">Embarcar!</button>
+        </div>
+    </div>
+
+    <div id="lobby-screen" class="screen">
+        <div class="overlay">
+            <h1 class="title">Tripulação se Reunindo...</h1>
+            <div id="player-grid"></div>
+            <div id="nickname-setup">
+                <input type="text" id="nickname-input" placeholder="Seu nome pirata">
+                <button id="ready-button">Pronto!</button>
+            </div>
+            <h2 id="start-timer" class="title" style="font-size: 2rem;"></h2>
+        </div>
+    </div>
+
+    <div id="difficulty-screen" class="screen">
+        <h1 class="title">Escolha sua Rota no Mapa!</h1>
+        <div id="difficulty-container">
+            <div class="difficulty-card" data-difficulty="easy">
+                <h3>Ilha dos Marujos</h3>
+                <p>Jornada tranquila, com ângulos notáveis e conceitos básicos.</p>
+            </div>
+            <div class="difficulty-card" data-difficulty="medium">
+                <h3>Baía dos Corsários</h3>
+                <p>Desafios no círculo trigonométrico completo e problemas práticos.</p>
+            </div>
+            <div class="difficulty-card" data-difficulty="hard">
+                <h3>Fortaleza do Kraken</h3>
+                <p>A rota mais perigosa, com identidades e leis trigonométricas.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="kraken-banner">🦑 RODADA DO KRAKEN - DOBRÕES EM DOBRO! 🦑</div>
+        <div id="game-container">
+            <div id="question-header">
+                <span id="question-counter"></span>
+                <div id="timer-container"><div id="timer-fuse"></div><div id="timer-spark">💣</div></div>
+                <span id="player-score"></span>
+            </div>
+            <h2 id="question-text"></h2>
+            <div id="answers-grid">
+                <button class="answer-btn" data-index="0"><span class="answer-icon">☠️</span><span class="answer-text"></span></button>
+                <button class="answer-btn" data-index="1"><span class="answer-icon">⚓</span><span class="answer-text"></span></button>
+                <button class="answer-btn" data-index="2"><span class="answer-icon">☸️</span><span class="answer-text"></span></button>
+                <button class="answer-btn" data-index="3"><span class="answer-icon">🍾</span><span class="answer-text"></span></button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="feedback-screen" class="screen">
+        <div id="feedback-container">
+            <h1 id="feedback-text"></h1>
+            <p id="points-text"></p>
+            <p id="explanation-text"></p>
+        </div>
+    </div>
+
+    <div id="leaderboard-screen" class="screen">
+        <ol id="leaderboard-list"></ol>
+    </div>
+    
+    <div id="podium-screen" class="screen">
+        <div id="podium-container">
+            <div id="podium-2" class="podium-step"><p class="podium-name"></p><p class="podium-chest">🥈</p><p class="podium-score"></p></div>
+            <div id="podium-1" class="podium-step"><p class="podium-name"></p><p class="podium-chest">🏆</p><p class="podium-score"></p></div>
+            <div id="podium-3" class="podium-step"><p class="podium-name"></p><p class="podium-chest">🥉</p><p class="podium-score"></p></div>
+        </div>
+        <button id="review-button" class="action-button" style="margin-top: 40px;">Ver Diário de Bordo</button>
+    </div>
+
+    <div id="review-screen" class="screen">
+        <h1 class="title" style="position: fixed; top: 0; background-color: var(--wood-dark); width: 100%; padding: 10px; margin:0; box-sizing:border-box;">Diário de Bordo</h1>
+        <ul id="review-list"></ul>
+        <button id="restart-game-button" class="action-button">Navegar Novamente</button>
+    </div>
+
+    <script>
+        const questionsDB = {
+            easy: [
+                { text: "Qual o valor de seno(30°)?", options: ["1", "0.5", "√3/2", "√2/2"], correct: 1, explanation: "Sen(30°) é um ângulo notável. Seu valor é 1/2, que é 0.5." },
+                { text: "Qual o valor da tangente(45°)?", options: ["√2", "0.5", "1", "Indefinido"], correct: 2, explanation: "A tangente é o cateto oposto dividido pelo adjacente. Em 45°, os catetos são iguais, então o resultado é 1." },
+                { text: "O valor de cos(0°) é:", options: ["1", "0", "-1", "0.5"], correct: 0, explanation: "No início do círculo trigonométrico (0°), a projeção no eixo X (cosseno) é máxima, valendo 1." },
+                { text: "O valor de cos(90°) é:", options: ["1", "0", "-1", "√2/2"], correct: 1, explanation: "A 90°, a projeção do ângulo no eixo X (cosseno) é zero." },
+                { text: "Um papagaio está no ombro de um pirata. O mastro do navio tem 10m de altura e o papagaio voa até o topo. Se a distância do pirata até a base do mastro é 10m, qual o ângulo de visão do pirata?", options: ["30°", "60°", "45°", "90°"], correct: 2, explanation: "Se o cateto oposto (altura) e o cateto adjacente (distância) são iguais (10m), o triângulo é isósceles, e o ângulo é de 45°." }
+            ],
+            medium: [
+                { text: "O valor de cos(180°) é:", options: ["1", "0", "-1", "Indefinido"], correct: 2, explanation: "No círculo trigonométrico, 180° está no ponto mais à esquerda do eixo x, que corresponde ao valor -1." },
+                { text: "Se a hipotenusa de um mapa é 10 e o cateto OPOSTO é 6, qual o SENO do ângulo?", options: ["0.8 (cosseno)", "1.66", "10/6", "0.6"], correct: 3, explanation: "Seno é Cateto Oposto / Hipotenusa. Portanto, 6 / 10 = 0.6." },
+                { text: "Qual o valor de sen(270°)?", options: ["0", "-1", "1", "Indefinido"], correct: 1, explanation: "No círculo trigonométrico, 270° está no ponto mais baixo do eixo y, que corresponde ao valor -1 para o seno." },
+                { text: "Um navio navega 200 milhas a leste e depois 200 milhas ao norte. Qual a distância total em linha reta da origem?", options: ["200 milhas", "400 milhas", "282.8 milhas", "346.4 milhas"], correct: 2, explanation: "Usando Pitágoras (a² + b² = c²), temos 200² + 200² = c². c = √(80000) ≈ 282.8 milhas." },
+                { text: "Converter π/2 radianos para graus resulta em:", options: ["45°", "180°", "270°", "90°"], correct: 3, explanation: "Sabendo que π radianos é igual a 180°, então π/2 é metade disso, ou seja, 90°." }
+            ],
+            hard: [
+                { text: "Qual é a identidade trigonométrica fundamental?", options: ["sen²(x) + cos²(x) = 1", "sen(x) / cos(x) = cot(x)", "sen²(x) - cos²(x) = 1", "1 + cot²(x) = cossec²(x)"], correct: 0, explanation: "A Relação Fundamental da Trigonometria diz que a soma dos quadrados do seno e do cosseno de um mesmo ângulo é sempre 1." },
+                { text: "A Lei dos Cossenos é a² = b² + c² - ...?", options: ["2bc·sen(A)", "bc·cos(A)", "2bc·cos(A)", "2ab·cos(C)"], correct: 2, explanation: "A fórmula completa da Lei dos Cossenos é a² = b² + c² - 2bc·cos(A), relacionando os lados de um triângulo com o cosseno do ângulo oposto." },
+                { text: "O valor de sec(60°) é:", options: ["0.5", "2", "1.73", "Não existe"], correct: 1, explanation: "A secante é o inverso do cosseno. Como cos(60°) = 0.5, a sec(60°) = 1 / 0.5 = 2." },
+                { text: "A expressão (sen(x) + cos(x))² é igual a:", options: ["1", "1 + tan(x)", "sen²(x) + cos²(x)", "1 + sen(2x)"], correct: 3, explanation: "Expandindo, temos sen²(x) + 2sen(x)cos(x) + cos²(x). Como sen²(x)+cos²(x)=1 e 2sen(x)cos(x)=sen(2x), o resultado é 1+sen(2x)." },
+                { text: "Qual o valor de cos(135°)?", options: ["√2/2", "-1/2", "-√2/2", "√3/2"], correct: 2, explanation: "O ângulo de 135° está no segundo quadrante, onde o cosseno é negativo. Seu ângulo de referência é 45°, então cos(135°) = -cos(45°) = -√2/2." }
+            ]
+        };
+
+        const pinButton = document.getElementById('pin-button');
+        const readyButton = document.getElementById('ready-button');
+        const answersGrid = document.getElementById('answers-grid');
+        const difficultyContainer = document.getElementById('difficulty-container');
+        const reviewButton = document.getElementById('review-button');
+        const restartGameButton = document.getElementById('restart-game-button');
+
+        const sounds = {
+            music: document.getElementById('music-bg'), click: document.getElementById('sound-click'),
+            correct: document.getElementById('sound-correct'), wrong: document.getElementById('sound-wrong'),
+            kraken: document.getElementById('sound-kraken')
+        };
+
+        let players = []; let playerNickname = "Você"; let currentQuestionIndex = 0;
+        let timerInterval; let selectedQuestions = []; let playerAnswers = [];
+
+        function playSound(soundName) { const sound = sounds[soundName]; if (sound) { sound.currentTime = 0; sound.play().catch(e => {}); } }
+        function switchScreen(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(screenId).classList.add('active'); }
+
+        pinButton.addEventListener('click', () => {
+            playSound('click');
+            if (document.getElementById('pin-input').value === '2025') {
+                switchScreen('lobby-screen');
+                document.body.addEventListener('click', () => { if(sounds.music.paused) sounds.music.play().catch(e => {}); }, { once: true });
+                setupLobby();
+            }
+        });
+
+        function setupLobby() {
+            players = [];
+            const botNames = ["Barba-Roxa", "Anne Bonny", "Olho de Vidro"];
+            const playerGrid = document.getElementById('player-grid');
+            playerGrid.innerHTML = '';
+            botNames.forEach((name, index) => {
+                setTimeout(() => {
+                    if (players.length < 4) {
+                        players.push({ name, score: 0, isBot: true });
+                        const card = document.createElement('div');
+                        card.className = 'player-card';
+                        card.textContent = `🏴‍☠️ ${name}`;
+                        card.style.animationDelay = `${index * 0.2}s`;
+                        playerGrid.appendChild(card);
+                    }
+                }, (index + 1) * 1000);
+            });
+            document.getElementById('nickname-input').value = '';
+            document.getElementById('nickname-setup').style.display = 'flex';
+        }
+
+        readyButton.addEventListener('click', () => {
+            playSound('click');
+            playerNickname = document.getElementById('nickname-input').value || "Pirata Anônimo";
+            players.unshift({ name: playerNickname, score: 0, isBot: false });
+            
+            const card = document.createElement('div');
+            card.className = 'player-card';
+            card.textContent = `🦜 ${playerNickname}`;
+            document.getElementById('player-grid').prepend(card);
+
+            document.getElementById('nickname-setup').style.display = 'none';
+            switchScreen('difficulty-screen');
+        });
+
+        difficultyContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.difficulty-card');
+            if (card) {
+                playSound('click');
+                const difficulty = card.dataset.difficulty;
+                selectedQuestions = questionsDB[difficulty];
+                startGame();
+            }
+        });
+        
+        function startGame() { currentQuestionIndex = 0; playerAnswers = []; showQuestion(); }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= selectedQuestions.length) { showPodium(); return; }
+            
+            const isKrakenRound = currentQuestionIndex === selectedQuestions.length - 1;
+            document.getElementById('kraken-banner').style.display = isKrakenRound ? 'block' : 'none';
+            if(isKrakenRound) playSound('kraken');
+
+            switchScreen('game-screen');
+            const question = selectedQuestions[currentQuestionIndex];
+            const player = players.find(p => !p.isBot);
+            
+            document.getElementById('question-counter').textContent = `Questão ${currentQuestionIndex + 1}/${selectedQuestions.length}`;
+            document.getElementById('player-score').textContent = `💰 ${player.score}`;
+            document.getElementById('question-text').textContent = question.text;
+            
+            document.querySelectorAll('.answer-btn').forEach((btn, i) => {
+                btn.querySelector('.answer-text').textContent = question.options[i];
+                btn.className = 'answer-btn';
+                btn.disabled = false;
+                btn.dataset.index = i;
+            });
+            startTimer(20);
+        }
+
+        function startTimer(duration) {
+            const fuseEl = document.getElementById('timer-fuse');
+            const sparkEl = document.getElementById('timer-spark');
+            
+            fuseEl.style.transition = 'none'; sparkEl.style.transition = 'none';
+            fuseEl.style.transform = 'scaleX(1)'; sparkEl.style.left = '100%';
+            
+            setTimeout(() => {
+                fuseEl.style.transition = `transform ${duration}s linear`;
+                sparkEl.style.transition = `left ${duration}s linear`;
+                fuseEl.style.transform = 'scaleX(0)';
+                sparkEl.style.left = '0%';
+            }, 100);
+            
+            timerInterval = setTimeout(() => handleAnswer(-1), duration * 1000);
+        }
+
+        answersGrid.addEventListener('click', (e) => {
+            const button = e.target.closest('.answer-btn');
+            if (button && !button.disabled) {
+                clearTimeout(timerInterval);
+                document.getElementById('timer-fuse').style.transition = 'none';
+                document.getElementById('timer-spark').style.transition = 'none';
+                handleAnswer(parseInt(button.dataset.index));
+            }
+        });
+
+        function handleAnswer(selectedIndex) {
+            playerAnswers.push({ question: selectedQuestions[currentQuestionIndex], answered: selectedIndex });
+            playSound(selectedIndex === -1 ? 'wrong' : 'click');
+            document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = true);
+
+            const question = selectedQuestions[currentQuestionIndex];
+            const isCorrect = selectedIndex === question.correct;
+            let pointsGained = 0;
+            
+            if (isCorrect) {
+                playSound('correct');
+                const timeRemaining = parseFloat(window.getComputedStyle(document.getElementById('timer-fuse')).transform.split(',')[4]);
+                pointsGained = Math.round(500 + 500 * timeRemaining);
+                if (currentQuestionIndex === selectedQuestions.length - 1) { pointsGained *= 2; }
+                players.find(p => !p.isBot).score += pointsGained;
+            } else {
+                playSound('wrong');
+            }
+            
+            document.querySelector(`.answer-btn[data-index='${question.correct}']`).classList.add('correct');
+            if (!isCorrect && selectedIndex !== -1) { document.querySelector(`.answer-btn[data-index='${selectedIndex}']`).classList.add('incorrect'); }
+
+            players.filter(p => p.isBot).forEach(bot => { if (Math.random() < 0.8) bot.score += Math.round(400 + Math.random() * 400); });
+            
+            setTimeout(() => showFeedback(isCorrect, pointsGained), 2000);
+        }
+
+        function showFeedback(isCorrect, pointsGained) {
+            const feedbackScreen = document.getElementById('feedback-screen');
+            const feedbackText = document.getElementById('feedback-text');
+            const pointsText = document.getElementById('points-text');
+            const explanationText = document.getElementById('explanation-text');
+            
+            feedbackScreen.className = `screen active ${isCorrect ? 'feedback-correct' : 'feedback-incorrect'}`;
+            
+            if (isCorrect) {
+                feedbackText.textContent = "TESOURO!";
+                pointsText.textContent = `+${pointsGained} Dobrões!`;
+                pointsText.style.display = 'block';
+                explanationText.style.display = 'none';
+            } else {
+                feedbackText.textContent = "MARUJO!";
+                pointsText.style.display = 'none';
+                explanationText.style.display = 'block';
+                const question = selectedQuestions[currentQuestionIndex];
+                const correctOptionText = question.options[question.correct];
+                explanationText.innerHTML = `A resposta certa era: <strong>${correctOptionText}</strong>.<br>${question.explanation}`;
+            }
+            setTimeout(showLeaderboard, 5000);
+        }
+
+        function showLeaderboard() {
+            switchScreen('leaderboard-screen');
+            players.sort((a, b) => b.score - a.score);
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = `<li class="leaderboard-item" style="background: none; border: none; box-shadow: none; color: white; text-shadow: 2px 2px 4px black; font-family: 'Bangers', cursive; font-size: 2.5rem;"><span>PROCURADO</span><span>RECOMPENSA</span></li>`;
+            
+            players.slice(0, 5).forEach((player, index) => {
+                const item = document.createElement('li');
+                item.className = 'leaderboard-item';
+                item.style.animationDelay = `${index * 0.2}s`;
+                item.innerHTML = `<span>${player.isBot ? '🏴‍☠️' : '🦜'} ${player.name}</span><strong>💰 ${player.score}</strong>`;
+                listEl.appendChild(item);
+            });
+
+            setTimeout(() => { currentQuestionIndex++; showQuestion(); }, 5000);
+        }
+
+        function showPodium() {
+            switchScreen('podium-screen');
+            sounds.music.pause();
+            players.sort((a, b) => b.score - a.score);
+            const top3 = players.slice(0, 3);
+            
+            document.querySelector('#podium-1 .podium-name').textContent = top3[0]?.name || '-';
+            document.querySelector('#podium-1 .podium-score').textContent = `💰 ${top3[0]?.score || 0}`;
+            document.querySelector('#podium-2 .podium-name').textContent = top3[1]?.name || '-';
+            document.querySelector('#podium-2 .podium-score').textContent = `💰 ${top3[1]?.score || 0}`;
+            document.querySelector('#podium-3 .podium-name').textContent = top3[2]?.name || '-';
+            document.querySelector('#podium-3 .podium-score').textContent = `💰 ${top3[2]?.score || 0}`;
+        }
+        
+        reviewButton.addEventListener('click', () => {
+            playSound('click');
+            switchScreen('review-screen');
+            const listEl = document.getElementById('review-list');
+            listEl.innerHTML = '';
+            playerAnswers.forEach((answerData, i) => {
+                const { question, answered } = answerData;
+                const isPlayerCorrect = answered === question.correct;
+                const playerAnswerText = answered === -1 ? "Sem resposta" : question.options[answered];
+
+                const item = document.createElement('li');
+                item.className = 'review-item';
+                item.innerHTML = `
+                    <h4>${i+1}. ${question.text}</h4>
+                    <p>Sua resposta: <span class="review-answer ${isPlayerCorrect ? '' : 'player-wrong'}">${playerAnswerText}</span></p>
+                    <p>Resposta correta: <span class="review-answer correct-answer">${question.options[question.correct]}</span></p>
+                    <p><strong>Explicação do Capitão:</strong> ${question.explanation}</p>
+                `;
+                listEl.appendChild(item);
+            });
+        });
+
+        restartGameButton.addEventListener('click', () => {
+            playSound('click');
+            location.reload();
+        });
+    </script>
+</body>
+</html>
